@@ -4,15 +4,9 @@
   "description": "الروح التقنية، من إبداع أحمد معروف. رفيقك الاستباقي للحياة والصحة والإبداع. تواصل معه صوتيًا، وحلل عالمك بعين الروح، وابتكر، واحصل على رؤى عميقة.",
   "icons": [
     {
-      "src": "/icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512",
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
       "purpose": "any maskable"
     }
   ],

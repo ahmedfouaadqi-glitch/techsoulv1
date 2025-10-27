@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Page, UserProfile } from './types';
 import PageLoader from './components/PageLoader';
+import ApiKeyMissingScreen from './components/ApiKeyMissingScreen';
 
 // Lazy load pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -216,6 +217,12 @@ const AppContent: React.FC = () => {
 
 
 const App: React.FC = () => {
+  // This is the critical check to prevent the app from crashing.
+  // It ensures the API_KEY is present before rendering the rest of the app.
+  if (!process.env.API_KEY) {
+    return <ApiKeyMissingScreen />;
+  }
+
   return (
     <ThemeProvider>
       <AnalysisProvider>
