@@ -1,0 +1,23 @@
+{
+  "short_name": "الروح التقنية",
+  "name": "الروح التقنية - رفيقك الاستباقي",
+  "description": "الروح التقنية، من إبداع أحمد معروف. رفيقك الاستباقي للحياة والصحة والإبداع. تواصل معه صوتيًا، وحلل عالمك بعين الروح، وابتكر، واحصل على رؤى عميقة.",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#06b6d4",
+  "background_color": "#000000"
+}
