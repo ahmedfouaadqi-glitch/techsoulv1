@@ -2,15 +2,18 @@ import { GoogleGenAI, GenerateContentResponse, Part, Modality, Content, Type, Ge
 import { ChatMessage, DiaryEntry, GroundingChunk, VisualFoodAnalysis, StyleAdvice, SpiritMessageType, UserProfile } from '../types';
 import { getDiaryEntries } from "./diaryService";
 
-// Initialize the Gemini AI client using the API_KEY environment variable.
-// This key should be set in the hosting platform's environment variables.
-// FIX: Use `process.env.API_KEY` as per the coding guidelines to resolve the TypeScript error.
-const apiKey = process.env.API_KEY;
-if (!apiKey) {
-    // FIX: Update error message to reflect the correct environment variable.
-    throw new Error("API_KEY is not defined. Please set it in your environment variables.");
-}
-const ai = new GoogleGenAI({ apiKey });
+let ai: GoogleGenAI | null = null;
+
+const getAiInstance = (): GoogleGenAI => {
+    if (ai) {
+        return ai;
+    }
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY is not defined. Please set it in your hosting environment variables.");
+    }
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    return ai;
+};
 
 
 const handleGeminiError = (error: any): string => {
@@ -37,11 +40,12 @@ const handleGeminiError = (error: any): string => {
  */
 export const callGeminiApi = async (prompt: string, images?: { mimeType: string; data: string }[]): Promise<string> => {
     try {
+        const gemini = getAiInstance();
         const parts: Part[] = [{ text: prompt }];
         if (images && images.length > 0) {
             images.forEach(image => parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } }));
         }
-        const response = await ai.models.generateContent({
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: { parts: parts },
         });
@@ -56,7 +60,8 @@ export const callGeminiApi = async (prompt: string, images?: { mimeType: string;
  */
 export const callGeminiProApi = async (prompt: string): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: prompt,
             config: {
@@ -74,6 +79,7 @@ export const callGeminiProApi = async (prompt: string): Promise<string> => {
  */
 export const callGeminiJsonApi = async (prompt: string, schema: any, useProModel: boolean = false): Promise<any> => {
     try {
+        const gemini = getAiInstance();
         const model = useProModel ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
         const config: any = {
             responseMimeType: 'application/json',
@@ -82,7 +88,7 @@ export const callGeminiJsonApi = async (prompt: string, schema: any, useProModel
         if (useProModel) {
             config.thinkingConfig = { thinkingBudget: 32768 };
         }
-        const response = await ai.models.generateContent({ model, contents: prompt, config });
+        const response = await gemini.models.generateContent({ model, contents: prompt, config });
         const jsonText = response.text.trim();
         const cleanedJsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
         return JSON.parse(cleanedJsonText);
@@ -107,7 +113,8 @@ const visualFoodSchema = {
 
 export const callGeminiVisualJsonApi = async (prompt: string, image: { mimeType: string; data: string }): Promise<VisualFoodAnalysis> => {
      try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
             config: {
@@ -160,7 +167,8 @@ export const styleAdviceSchema = {
 
 export const getStyleAdvice = async (prompt: string, image: { mimeType: string; data: string }): Promise<StyleAdvice> => {
      try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
             config: {
@@ -181,6 +189,7 @@ export const getStyleAdvice = async (prompt: string, image: { mimeType: string; 
  */
 export const callGeminiChatApi = async (messages: ChatMessage[], systemInstruction: string, isFollowUp: boolean = false): Promise<string> => {
     try {
+        const gemini = getAiInstance();
         const model = isFollowUp ? 'gemini-flash-lite-latest' : 'gemini-2.5-flash';
         const filteredMessages = messages.filter(m => m.role !== 'model' || m.content.includes('اسالني عن اي شيء يخطر ببالك') === false);
         const contents: Content[] = filteredMessages.map(msg => ({
@@ -191,7 +200,7 @@ export const callGeminiChatApi = async (messages: ChatMessage[], systemInstructi
             ] : [{ text: msg.content }]
         }));
 
-        const response = await ai.models.generateContent({
+        const response = await gemini.models.generateContent({
             model,
             contents,
             config: { systemInstruction: `${systemInstruction} الرجاء الرد دائماً باللغة العربية الفصحى.` },
@@ -207,7 +216,8 @@ export const callGeminiChatApi = async (messages: ChatMessage[], systemInstructi
  */
 export const generateImage = async (prompt: string, aspectRatio: '1:1' | '16:9' | '9:16' = '1:1'): Promise<string> => {
     try {
-        const response = await ai.models.generateImages({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: prompt,
             config: {
@@ -301,7 +311,8 @@ export const getSpiritMessageFromGemini = async (messageType: SpiritMessageType,
     }
 
     try {
-        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
         return response.text;
     } catch (error) {
         console.error(`Error generating spirit message of type ${messageType}:`, error);
@@ -326,10 +337,11 @@ export const suggestMovieBasedOnDiary = async (): Promise<string> => {
 
 export const callGeminiSearchApi = async (query: string, useMaps: boolean, location?: { latitude: number; longitude: number; }): Promise<{ text: string, groundingChunks: GroundingChunk[] }> => {
     try {
+        const gemini = getAiInstance();
         const tools: any[] = useMaps ? [{ googleMaps: {} }, { googleSearch: {} }] : [{ googleSearch: {} }];
         const toolConfig = useMaps && location ? { retrievalConfig: { latLng: location } } : {};
         
-        const response = await ai.models.generateContent({
+        const response = await gemini.models.generateContent({
             model: "gemini-2.5-flash",
             contents: query,
             config: { tools, toolConfig, systemInstruction: 'أنت مساعد بحث مفيد. لخص النتائج باللغة العربية الفصحى.' },
@@ -348,7 +360,8 @@ export const callGeminiSearchApi = async (query: string, useMaps: boolean, locat
 
 export const textToSpeech = async (text: string): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text: `Say cheerfully: ${text}` }] }],
             config: {
@@ -368,7 +381,8 @@ export const textToSpeech = async (text: string): Promise<string> => {
 
 export const editImage = async (prompt: string, image: { mimeType: string, data: string }): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts: [ { inlineData: { mimeType: image.mimeType, data: image.data } }, { text: prompt } ] },
             config: { responseModalities: [Modality.IMAGE] },
@@ -384,7 +398,8 @@ export const editImage = async (prompt: string, image: { mimeType: string, data:
 
 export const analyzeVideoFrame = async (prompt: string, image: { mimeType: string, data: string }): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-pro', // Use Pro for better video frame analysis
             contents: { parts: [{ text: prompt }, { inlineData: { mimeType: image.mimeType, data: image.data } }] },
         });
@@ -396,7 +411,9 @@ export const analyzeVideoFrame = async (prompt: string, image: { mimeType: strin
 
 export const generateVideo = async (prompt: string, image?: { mimeType: string; data: string }, aspectRatio: '16:9' | '9:16' = '16:9'): Promise<GenerateVideosOperation> => {
     try {
-        // FIX: Create a new GoogleGenAI instance for video generation to use the latest API key as per guidelines for Veo models.
+        if (!process.env.API_KEY) {
+            throw new Error("API_KEY is not defined. Please set it in your hosting environment variables.");
+        }
         const videoAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const operation = await videoAi.models.generateVideos({
             model: 'veo-3.1-fast-generate-preview',
@@ -412,7 +429,9 @@ export const generateVideo = async (prompt: string, image?: { mimeType: string; 
 
 export const getVideosOperation = async (operation: GenerateVideosOperation): Promise<GenerateVideosOperation> => {
     try {
-        // FIX: Create a new GoogleGenAI instance for video operations to use the latest API key as per guidelines for Veo models.
+        if (!process.env.API_KEY) {
+            throw new Error("API_KEY is not defined. Please set it in your hosting environment variables.");
+        }
         const videoAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
         return await videoAi.operations.getVideosOperation({ operation });
     } catch (error) {
@@ -422,7 +441,8 @@ export const getVideosOperation = async (operation: GenerateVideosOperation): Pr
 
 export const transcribeAudio = async (audio: { mimeType: string, data: string }): Promise<string> => {
     try {
-        const response = await ai.models.generateContent({
+        const gemini = getAiInstance();
+        const response = await gemini.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: { parts: [{ inlineData: { mimeType: audio.mimeType, data: audio.data } }] },
         });
