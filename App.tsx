@@ -1,28 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Page, UserProfile } from './types';
-import HomePage from './pages/HomePage';
-import ImageAnalysisPage from './pages/ImageAnalysisPage';
-import CalorieCounterPage from './pages/CalorieCounterPage';
-import SmartHealthPage from './pages/SmartHealthPage';
-import PharmacyPage from './pages/PharmacyPage';
-import HealthDiaryPage from './pages/HealthDiaryPage';
-import ChatPage from './pages/ChatPage';
-import MyPlantsPage from './pages/MyPlantsPage';
-import GlobalSearchPage from './pages/GlobalSearchPage';
-import SportsTrainerPage from './pages/SportsTrainerPage';
-import ShoppingListPage from './pages/ShoppingListPage';
-import ChallengesPage from './pages/ChallengesPage';
-import CommunityInspirationsPage from './pages/CommunityInspirationsPage';
-import DietPlanPage from './pages/DietPlanPage';
-import FavoriteMoviesPage from './pages/FavoriteMoviesPage';
-import ImageEditingPage from './pages/ImageEditingPage';
-import VideoAnalysisPage from './pages/VideoAnalysisPage';
-import VideoGenerationPage from './pages/VideoGenerationPage';
-import LiveConversationPage from './pages/LiveConversationPage';
-import TranscriptionPage from './pages/TranscriptionPage';
-import UserProfileSetupPage from './pages/UserProfileSetupPage';
-import AchievementsPage from './pages/AchievementsPage';
-import NotificationSettingsPage from './pages/NotificationSettingsPage';
+import PageLoader from './components/PageLoader';
+
+// Lazy load pages for code splitting
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ImageAnalysisPage = lazy(() => import('./pages/ImageAnalysisPage'));
+const CalorieCounterPage = lazy(() => import('./pages/CalorieCounterPage'));
+const SmartHealthPage = lazy(() => import('./pages/SmartHealthPage'));
+const PharmacyPage = lazy(() => import('./pages/PharmacyPage'));
+const HealthDiaryPage = lazy(() => import('./pages/HealthDiaryPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const MyPlantsPage = lazy(() => import('./pages/MyPlantsPage'));
+const GlobalSearchPage = lazy(() => import('./pages/GlobalSearchPage'));
+const SportsTrainerPage = lazy(() => import('./pages/SportsTrainerPage'));
+const ShoppingListPage = lazy(() => import('./pages/ShoppingListPage'));
+const ChallengesPage = lazy(() => import('./pages/ChallengesPage'));
+const CommunityInspirationsPage = lazy(() => import('./pages/CommunityInspirationsPage'));
+const DietPlanPage = lazy(() => import('./pages/DietPlanPage'));
+const FavoriteMoviesPage = lazy(() => import('./pages/FavoriteMoviesPage'));
+const ImageEditingPage = lazy(() => import('./pages/ImageEditingPage'));
+const VideoAnalysisPage = lazy(() => import('./pages/VideoAnalysisPage'));
+const VideoGenerationPage = lazy(() => import('./pages/VideoGenerationPage'));
+const LiveConversationPage = lazy(() => import('./pages/LiveConversationPage'));
+const TranscriptionPage = lazy(() => import('./pages/TranscriptionPage'));
+const UserProfileSetupPage = lazy(() => import('./pages/UserProfileSetupPage'));
+const AchievementsPage = lazy(() => import('./pages/AchievementsPage'));
+const NotificationSettingsPage = lazy(() => import('./pages/NotificationSettingsPage'));
 
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -184,12 +187,14 @@ const AppContent: React.FC = () => {
       case 'locked':
         return <BiometricLockScreen onUnlock={handleUnlock} />;
       case 'setup':
-        return <UserProfileSetupPage onComplete={handleProfileSave} />;
+        return <Suspense fallback={<PageLoader />}><UserProfileSetupPage onComplete={handleProfileSave} /></Suspense>;
       case 'onboarding':
         return (
             <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
                 <div className="pb-20">
-                    <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} userProfile={userProfile} />
+                    <Suspense fallback={<PageLoader />}>
+                        <HomePage navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} userProfile={userProfile} />
+                    </Suspense>
                 </div>
                 {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />}
                 <OnboardingGuide onComplete={handleOnboardingComplete} />
@@ -199,7 +204,9 @@ const AppContent: React.FC = () => {
          return (
               <div className="bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 min-h-screen font-sans">
                   <div className="pb-20"> {/* Padding for classic nav bar */}
-                      {renderPage()}
+                      <Suspense fallback={<PageLoader />}>
+                        {renderPage()}
+                      </Suspense>
                   </div>
                   {!isCameraOpen && <BottomNavBar currentPage={currentPage} navigateTo={navigateTo} diaryIndicatorActive={diaryIndicatorActive} />}
               </div>
